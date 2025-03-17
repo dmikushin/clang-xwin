@@ -13,8 +13,9 @@ ENV LANGUAGE en_US.UTF-8
 # a native compiler and a cross-compiler all in one.
 # For example, Clang in Linux could be given an option --target=x86_64-pc-windows-msvc
 # to produce a Windows binary (given that the Windows headers and libraries are provided)
-RUN apt update && \
-    apt install -y --no-install-recommends wget ca-certificates && \
+RUN set -eux; \
+    apt update && \
+    apt install -y --no-install-recommends curl wget ca-certificates && \
     echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" > /etc/apt/sources.list.d/llvm.list && \
     wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc && \
     apt update && \
@@ -32,11 +33,19 @@ RUN apt update && \
     update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-${LLVM_VERSION} 100 && \
     update-alternatives --install /usr/bin/ld ld /usr/bin/ld.lld-${LLVM_VERSION} 100
 
+ARG xwin_version="0.6.6-rc.2-superewald"
+ARG xwin_suffix="x86_64-unknown-linux-musl"
+ARG xwin_base_url="https://github.com/Jake-Shadle/xwin/releases/download"
+
+COPY xwin-${xwin_version}-${xwin_suffix}.tar.gz . 
+
 # Install the Windows headers and libraries provided by XWin project
-RUN wget https://github.com/Jake-Shadle/xwin/releases/download/0.5.2/xwin-0.5.2-x86_64-unknown-linux-musl.tar.gz && \
-    tar xf xwin-0.5.2-x86_64-unknown-linux-musl.tar.gz && \
-    cd xwin-0.5.2-x86_64-unknown-linux-musl && \
-    XWIN_ACCEPT_LICENSE=true ./xwin --include-atl splat && \
+# curl --fail -L ${xwin_base_url}/${xwin_version}/xwin-${xwin_version}-${xwin_suffix}.tar.gz | tar -xz && \
+RUN set -eux; \
+    xwin_url="https://github.com/Jake-Shadle/xwin/releases/download"; \
+    cat xwin-${xwin_version}-${xwin_suffix}.tar.gz | tar -xz && \
+    cd xwin-${xwin_version}-${xwin_suffix} && \
+    XWIN_ACCEPT_LICENSE=true ./xwin --include-atl --include-debug-runtime splat --include-debug-libs && \
     mv .xwin-cache/splat /opt/xwin && \
     cd .. && \
     rm -rf xwin*
