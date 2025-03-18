@@ -45,7 +45,7 @@ RUN set -eux; \
     xwin_url="https://github.com/Jake-Shadle/xwin/releases/download"; \
     cat xwin-${xwin_version}-${xwin_suffix}.tar.gz | tar -xz && \
     cd xwin-${xwin_version}-${xwin_suffix} && \
-    XWIN_ACCEPT_LICENSE=true ./xwin --include-atl --include-debug-runtime splat --include-debug-libs && \
+    XWIN_ACCEPT_LICENSE=true ./xwin --include-atl --include-mfc --include-debug-runtime splat --include-debug-libs && \
     mv .xwin-cache/splat /opt/xwin && \
     cd .. && \
     rm -rf xwin*
