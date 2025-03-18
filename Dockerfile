@@ -61,3 +61,8 @@ ENV PATH "/opt/clang-win/bin:$PATH"
 
 ENV LDFLAGS "-L/opt/xwin/sdk/Lib/um/x86_64 -L/opt/xwin/crt/lib/x86_64 -L/opt/xwin/sdk/lib/ucrt/x86_64 -L/usr/x86_64-w64-mingw32/lib"
 
+COPY insensitive.cpp .
+
+RUN clang++-${LLVM_VERSION} -O3 -std=c++17 -fPIC insensitive.cpp -shared -o libinsensitive.so && \
+    rm -rf insensitive.cpp
+
