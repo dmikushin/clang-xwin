@@ -1,4 +1,5 @@
 // A shared library to intercept Clang header file accesses and make filenames case-insensitive
+// clang++-20 -g -O0 -std=c++17 -fPIC insensitive.cpp -shared -o libinsensitive.so
 
 #include <dlfcn.h>
 #include <fcntl.h>
@@ -49,22 +50,28 @@ class Wrapper {
 
 public:
     std::unique_ptr<char[]> replace_filename_case_insensitive(const char* path) {
+        if (!path) return nullptr;
         fs::path p(path);
+        std::error_code ec;
+        //if (fs::exists(p, ec)) return clone(path);
         std::string filename = p.filename().string();
         std::transform(filename.begin(), filename.end(), filename.begin(), ::tolower);
 
         // Check cache first
         {
             std::lock_guard<std::mutex> lock(cache_mutex);
-            auto it = cache.find(filename);
+            auto it = cache.find(p.string());
             if (it != cache.end()) {
                 return clone(it->second.c_str());
             }
         }
 
         std::unique_ptr<char[]> path_new = clone(path);
-        std::error_code ec;
+#if 0
+	printf("%s ->", path_new.get());
+#endif
         for (const auto& entry : fs::directory_iterator(p.parent_path(), ec)) {
+            //if (fs::is_directory(entry.status())) continue;
             std::string direntry = entry.path().filename().string();
             std::transform(direntry.begin(), direntry.end(), direntry.begin(), ::tolower);
             if (filename == direntry) {
@@ -72,11 +79,13 @@ public:
 
                 // Update cache
                 std::lock_guard<std::mutex> lock(cache_mutex);
-                cache[filename] = entry.path().string();
+                cache[p.string()] = entry.path().string();
                 break;
             }
         }
-
+#if 0
+	printf("%s\n", path_new.get());
+#endif
         return path_new;
     }
 
