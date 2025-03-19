@@ -6,4 +6,5 @@ LD_PRELOAD=/opt/clang-win/bin/libinsensitive.so \
     -I/opt/xwin/sdk/include/ucrt \
     -I/opt/xwin/sdk/include/um \
     -I/opt/xwin/sdk/include/shared \
+    -fcolor-diagnostics \
     $@
