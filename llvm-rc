@@ -1,5 +1,5 @@
 #!/bin/bash
-llvm-rc-19 \
+/usr/bin/llvm-rc \
     -I/opt/xwin/crt/include \
     -I/opt/xwin/sdk/include/ucrt \
     -I/opt/xwin/sdk/include/um \
