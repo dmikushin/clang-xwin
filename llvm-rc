@@ -1,5 +1,5 @@
 #!/bin/bash
-/usr/bin/llvm-rc /C 65001 \
+LD_PRELOAD= /usr/bin/llvm-rc /C 65001 \
     -I/opt/xwin/crt/include \
     -I/opt/xwin/sdk/include/ucrt \
     -I/opt/xwin/sdk/include/um \

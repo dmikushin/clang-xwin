@@ -7,4 +7,6 @@ LD_PRELOAD=/opt/clang-win/bin/libinsensitive.so \
     -I/opt/xwin/sdk/include/um \
     -I/opt/xwin/sdk/include/shared \
     -fcolor-diagnostics \
+    -Wno-nonportable-include-path \
+    -Wno-pragma-pack \
     $@

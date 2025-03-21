@@ -31,7 +31,8 @@ RUN set -eux; \
     lld-link --version && \
     update-alternatives --install /usr/bin/cc cc /usr/bin/clang-${LLVM_VERSION} 100 && \
     update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-${LLVM_VERSION} 100 && \
-    update-alternatives --install /usr/bin/ld ld /usr/bin/ld.lld-${LLVM_VERSION} 100
+    update-alternatives --install /usr/bin/ld ld /usr/bin/ld.lld-${LLVM_VERSION} 100 && \
+    update-alternatives --install /usr/bin/ar ar /usr/bin/llvm-ar-${LLVM_VERSION} 100
 
 ARG xwin_version="0.6.6-rc.2-superewald"
 ARG xwin_suffix="x86_64-unknown-linux-musl"
@@ -55,7 +56,9 @@ WORKDIR /opt/clang-win/bin
 COPY cc .
 COPY c++ .
 COPY llvm-rc .
+COPY make .
 COPY cmake .
+COPY ninja .
 
 ENV PATH "/opt/clang-win/bin:$PATH"
 
@@ -69,5 +72,9 @@ RUN clang++-${LLVM_VERSION} -O3 -std=c++17 -fPIC insensitive.cpp -shared -o libi
 ENV CLICOLOR_FORCE 1
 
 ENV SHELL /usr/bin/fish
+
+#ENV INSENSITIVE_DEBUG 1
+
+#ENV INSENSITIVE_DEBUG_LEVEL TRACE
 
 CMD ["fish"]
