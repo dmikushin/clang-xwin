@@ -36,15 +36,12 @@ RUN set -eux; \
 
 ARG xwin_version="0.6.6-rc.2-superewald"
 ARG xwin_suffix="x86_64-unknown-linux-musl"
-ARG xwin_base_url="https://github.com/Jake-Shadle/xwin/releases/download"
-
-COPY xwin-${xwin_version}-${xwin_suffix}.tar.gz . 
+ARG xwin_base_url="https://github.com/dmikushin/xwin/releases/download"
 
 # Install the Windows headers and libraries provided by XWin project
-# curl --fail -L ${xwin_base_url}/${xwin_version}/xwin-${xwin_version}-${xwin_suffix}.tar.gz | tar -xz && \
 RUN set -eux; \
     xwin_url="https://github.com/Jake-Shadle/xwin/releases/download"; \
-    cat xwin-${xwin_version}-${xwin_suffix}.tar.gz | tar -xz && \
+    curl --fail -L ${xwin_base_url}/${xwin_version}/xwin-${xwin_version}-${xwin_suffix}.tar.gz | tar -xz && \
     cd xwin-${xwin_version}-${xwin_suffix} && \
     XWIN_ACCEPT_LICENSE=true ./xwin --include-atl --include-mfc --include-debug-runtime splat --include-debug-libs && \
     mv .xwin-cache/splat /opt/xwin && \
