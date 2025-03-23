@@ -19,19 +19,31 @@ docker build -t clang-xwin .
 In the project folder:
 
 ```
-docker run --rm -it -v /etc/localtime:/etc/localtime:ro -v /etc/timezone:/etc/timezone:ro -v (pwd):(pwd) -w (pwd) clang-xwin
+docker run --rm -it -v /etc/localtime:/etc/localtime:ro -v /etc/timezone:/etc/timezone:ro -v (pwd):(pwd) -w (pwd) -p 22227:22221 marcusmae/clang-xwin:mfc
 ```
 
-Then navigate to Makefile folder and use `make` or `make -j12` to build the project for Windows.
+Then log in into the container via SSH:
+ 
+```
+ssh localhost -p 22227
+```
+ 
+The username specification is ignored, the login succeeds without a password.
+
+Navigate to Makefile folder and use `make` or `make -j12` to build the project for Windows.
+
+The SSH container connection method is designed mainly for compatibility with IDEs. In order to use Visual Studio Code or Zed, connect your preferred IDE to the SSH server exposed by the container:
+
+```bash
+zed ssh://localhost:22227/$(pwd)
+```
 
 
 ## TODO
 
-0. Add dropbear without authentication to support remote development with VS Code or Zed
-
 1. Fix crash in `llvm-rc` due to libinsensitive.so
 
-2. Figure out why Ninja is not able to perform partial rebuild with `libinsensitive.so` preloaded, while GNU make works
+2. Figure out why Ninja is not able to perform partial rebuild with `libinsensitive.so` preloaded, while GNU Make works
 
 3. Integrate pacman to install dependencies from MSYS2 UCRT package repository:
 

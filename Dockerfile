@@ -19,7 +19,7 @@ RUN set -eux; \
     echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" > /etc/apt/sources.list.d/llvm.list && \
     wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc && \
     apt update && \
-    apt install -y --no-install-recommends git cmake make ninja-build llvm-${LLVM_VERSION} clang-${LLVM_VERSION} clang-tools-${LLVM_VERSION} lld-${LLVM_VERSION} libomp-${LLVM_VERSION}-dev vim fish tmux mc && \
+    apt install -y --no-install-recommends git cmake make ninja-build llvm-${LLVM_VERSION} clang-${LLVM_VERSION} clang-tools-${LLVM_VERSION} lld-${LLVM_VERSION} libomp-${LLVM_VERSION}-dev libz-dev vim fish tmux mc && \
     ln -s clang-${LLVM_VERSION} /usr/bin/clang && ln -s clang /usr/bin/clang++ && ln -s lld-${LLVM_VERSION} /usr/bin/ld.lld && \
     ln -s clang-cl-${LLVM_VERSION} /usr/bin/clang-cl && ln -s llvm-ar-${LLVM_VERSION} /usr/bin/llvm-lib && ln -s lld-link-${LLVM_VERSION} /usr/bin/lld-link && \
     ln -s llvm-rc-${LLVM_VERSION} /usr/bin/llvm-rc && \
@@ -33,6 +33,18 @@ RUN set -eux; \
     update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-${LLVM_VERSION} 100 && \
     update-alternatives --install /usr/bin/ld ld /usr/bin/ld.lld-${LLVM_VERSION} 100 && \
     update-alternatives --install /usr/bin/ar ar /usr/bin/llvm-ar-${LLVM_VERSION} 100
+
+# Build & install Dropbear SSH server with our mods
+RUN git clone https://github.com/dmikushin/dropbear.git && \
+    cd dropbear && \
+    mkdir build && \
+    cd build && \
+    CFLAGS="-g -O3" ../configure && \
+    make && \
+    make install && \
+    cd ../.. && \
+    rm -rf dropbear && \
+    mkdir -p /etc/dropbear
 
 ARG xwin_version="0.6.6-rc.2-superewald"
 ARG xwin_suffix="x86_64-unknown-linux-musl"
@@ -74,4 +86,19 @@ ENV SHELL /usr/bin/fish
 
 #ENV INSENSITIVE_DEBUG_LEVEL TRACE
 
-CMD ["fish"]
+ENV DOCKER 1
+
+RUN chsh -s /usr/bin/fish root
+
+RUN bash -c 'echo -e "# /etc/shells: always use fish as a login shell\n/usr/bin/fish\n/bin/bash" >/etc/shells'
+
+# Pre-generate Dropbear SSH keys
+RUN mkdir -p /etc/dropbear && \
+    dropbearkey -t rsa -f /etc/dropbear/dropbear_rsa_host_key && \
+    dropbearkey -t ed25519 -f /etc/dropbear/dropbear_ed25519_host_key && \
+    dropbearkey -t ecdsa -f /etc/dropbear/dropbear_ecdsa_host_key
+
+# Run Dropbear SSH server without authentication ('-0' option mod)
+ENTRYPOINT [ "dropbear", "-0", "-F", "-s", "-e", "-E", "-p", "22221" ]
+
+EXPOSE 22221
