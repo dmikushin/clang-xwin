@@ -49,8 +49,10 @@ pacman -S mingw64/mingw-w64-x86_64-boost
 
 ## TODO
 
-1. Fix crash in `llvm-rc` due to libinsensitive.so
+1. Move XWin-specific CMake/Clang settings into the CMake predefined init, e.g. `~/.config/cmake/init.cmake`, plus CMAKE_PREFIX_PATH for MSYS2
 
-2. Figure out why Ninja is not able to perform partial rebuild with `libinsensitive.so` preloaded, while GNU Make works
+2. Fix crash in `llvm-rc` due to libinsensitive.so
 
-3. Preinstall Wine to run intermediate Windows tools that might be involved in complex build scripts
+3. Figure out why Ninja is not able to perform partial rebuild with `libinsensitive.so` preloaded, while GNU Make works
+
+4. Preinstall Wine to run intermediate Windows tools that might be involved in complex build scripts
