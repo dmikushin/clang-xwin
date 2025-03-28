@@ -6,6 +6,8 @@ Yes, it works very well, moreover ATL and MFC are supported!
 
 We use a preloaded library that emulates basic case-insensitive behavior in Linux, which is essential in Windows build environment.
 
+We integrate MSYS2 to install Windows dependencies with pacman.
+
 
 ## Building
 
@@ -38,6 +40,12 @@ The SSH container connection method is designed mainly for compatibility with ID
 zed ssh://localhost:22227/$(pwd)
 ```
 
+Example Windows package lookup and installation using MSYS2-configured pacman:
+
+```
+pacman -Ss boost
+pacman -S mingw64/mingw-w64-x86_64-boost
+```
 
 ## TODO
 
@@ -45,9 +53,4 @@ zed ssh://localhost:22227/$(pwd)
 
 2. Figure out why Ninja is not able to perform partial rebuild with `libinsensitive.so` preloaded, while GNU Make works
 
-3. Integrate pacman to install dependencies from MSYS2 UCRT package repository:
-
-* Use MSYS2's pacman recompiled for Linux
-* Use MSYS2's `pacman.conf` to configure the package installation procedure
-
-4. Preinstall Wine to run intermediate Windows tools that might be involved in complex build scripts
+3. Preinstall Wine to run intermediate Windows tools that might be involved in complex build scripts

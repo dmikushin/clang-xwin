@@ -1,8 +1,45 @@
+FROM ubuntu:22.04 as pacman
+
+RUN set -eux; \
+    apt update && \
+    apt install -y --no-install-recommends git wget ca-certificates gcc meson make ninja-build \
+        pkg-config libarchive-dev libssl-dev libcurl4-openssl-dev libgpgme-dev
+
+# We use MSYS2, which is pacman-flavored Windows packages provider that makes libraries
+# dependencies installation as easy as in Linux.
+RUN git clone https://github.com/msys2/msys2-pacman.git && \
+    cd msys2-pacman && \
+    meson setup builddir --prefix=/opt/msys2/usr --sysconfdir=/opt/msys2/etc && \
+    meson compile -C builddir && \
+    meson install -C builddir
+
+RUN git clone https://github.com/msys2/MSYS2-keyring.git && \
+    cd MSYS2-keyring && \
+    sed -i "s|/usr/local|/usr|" Makefile && \
+    make DESTDIR=/opt/msys2
+
+WORKDIR /opt/msys2/etc
+
+RUN rm -rf pacman.conf && \
+    wget https://raw.githubusercontent.com/msys2/MSYS2-packages/refs/heads/master/pacman/pacman.conf && \
+    sed -i "s|/etc/pacman.d|/opt/msys2/etc/pacman.d|g" pacman.conf && \
+    sed -i "s|CheckSpace|#CheckSpace|g" pacman.conf
+
+WORKDIR /opt/msys2/etc/pacman.d
+
+RUN wget https://raw.githubusercontent.com/msys2/MSYS2-packages/refs/heads/master/pacman-mirrors/mirrorlist.msys && \
+    wget https://raw.githubusercontent.com/msys2/MSYS2-packages/refs/heads/master/pacman-mirrors/mirrorlist.mingw
+
 FROM ubuntu:22.04
 
 LABEL maintainer="dmitry@kernelgen.org"
 
 ARG LLVM_VERSION=20
+
+ARG INCLUDE_ATL=
+ARG INCLUDE_MFC=
+#ARG INCLUDE_ATL="--include-atl"
+#ARG INCLUDE_MFC="--include-mfc"
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV LC_ALL C.UTF-8
@@ -19,7 +56,7 @@ RUN set -eux; \
     echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" > /etc/apt/sources.list.d/llvm.list && \
     wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc && \
     apt update && \
-    apt install -y --no-install-recommends git cmake make ninja-build llvm-${LLVM_VERSION} clang-${LLVM_VERSION} clang-tools-${LLVM_VERSION} lld-${LLVM_VERSION} libomp-${LLVM_VERSION}-dev libz-dev vim fish tmux mc && \
+    apt install -y --no-install-recommends git cmake make ninja-build llvm-${LLVM_VERSION} clang-${LLVM_VERSION} clang-tools-${LLVM_VERSION} lld-${LLVM_VERSION} libomp-${LLVM_VERSION}-dev libz-dev vim fish tmux mc ssh gpg gpg-agent libgpgme11 && \
     ln -s clang-${LLVM_VERSION} /usr/bin/clang && ln -s clang /usr/bin/clang++ && ln -s lld-${LLVM_VERSION} /usr/bin/ld.lld && \
     ln -s clang-cl-${LLVM_VERSION} /usr/bin/clang-cl && ln -s llvm-ar-${LLVM_VERSION} /usr/bin/llvm-lib && ln -s lld-link-${LLVM_VERSION} /usr/bin/lld-link && \
     ln -s llvm-rc-${LLVM_VERSION} /usr/bin/llvm-rc && \
@@ -55,7 +92,7 @@ RUN set -eux; \
     xwin_url="https://github.com/Jake-Shadle/xwin/releases/download"; \
     curl --fail -L ${xwin_base_url}/${xwin_version}/xwin-${xwin_version}-${xwin_suffix}.tar.gz | tar -xz && \
     cd xwin-${xwin_version}-${xwin_suffix} && \
-    XWIN_ACCEPT_LICENSE=true ./xwin --include-atl --include-mfc --include-debug-runtime splat --include-debug-libs && \
+    XWIN_ACCEPT_LICENSE=true ./xwin ${INCLUDE_ATL} ${INCLUDE_MFC} --include-debug-runtime splat --include-debug-libs && \
     mv .xwin-cache/splat /opt/xwin && \
     cd .. && \
     rm -rf xwin*
@@ -97,6 +134,20 @@ RUN mkdir -p /etc/dropbear && \
     dropbearkey -t rsa -f /etc/dropbear/dropbear_rsa_host_key && \
     dropbearkey -t ed25519 -f /etc/dropbear/dropbear_ed25519_host_key && \
     dropbearkey -t ecdsa -f /etc/dropbear/dropbear_ecdsa_host_key
+
+# Install MSYS2 pacman and configure it for fetching MSYS2 packages.
+# This way we can bring the entire opensource package universe together
+# with our Clang-based Windows toolchain.
+COPY --from=pacman /opt/msys2 /opt/msys2
+
+ENV PATH=$PATH:/opt/msys2/usr/bin
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/msys2/usr/lib64
+
+RUN pacman-key --init && \
+    pacman-key --populate msys2 && \
+    mkdir -p /var/lib/pacman && \
+    pacman -Syu --noconfirm && \
+    pacman -Sy --noconfirm msys2-keyring
 
 # Run Dropbear SSH server without authentication ('-0' option mod)
 ENTRYPOINT [ "dropbear", "-0", "-F", "-s", "-e", "-E", "-p", "22221" ]
