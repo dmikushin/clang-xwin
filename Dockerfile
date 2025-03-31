@@ -1,45 +1,8 @@
-FROM ubuntu:22.04 as pacman
-
-RUN set -eux; \
-    apt update && \
-    apt install -y --no-install-recommends git wget ca-certificates gcc meson make ninja-build \
-        pkg-config libarchive-dev libssl-dev libcurl4-openssl-dev libgpgme-dev
-
-# We use MSYS2, which is pacman-flavored Windows packages provider that makes libraries
-# dependencies installation as easy as in Linux.
-RUN git clone https://github.com/msys2/msys2-pacman.git && \
-    cd msys2-pacman && \
-    meson setup builddir --prefix=/opt/msys2/usr --sysconfdir=/opt/msys2/etc && \
-    meson compile -C builddir && \
-    meson install -C builddir
-
-RUN git clone https://github.com/msys2/MSYS2-keyring.git && \
-    cd MSYS2-keyring && \
-    sed -i "s|/usr/local|/usr|" Makefile && \
-    make DESTDIR=/opt/msys2
-
-WORKDIR /opt/msys2/etc
-
-RUN rm -rf pacman.conf && \
-    wget https://raw.githubusercontent.com/msys2/MSYS2-packages/refs/heads/master/pacman/pacman.conf && \
-    sed -i "s|/etc/pacman.d|/opt/msys2/etc/pacman.d|g" pacman.conf && \
-    sed -i "s|CheckSpace|#CheckSpace|g" pacman.conf
-
-WORKDIR /opt/msys2/etc/pacman.d
-
-RUN wget https://raw.githubusercontent.com/msys2/MSYS2-packages/refs/heads/master/pacman-mirrors/mirrorlist.msys && \
-    wget https://raw.githubusercontent.com/msys2/MSYS2-packages/refs/heads/master/pacman-mirrors/mirrorlist.mingw
-
-FROM ubuntu:22.04
+FROM ubuntu:22.04 AS clang
 
 LABEL maintainer="dmitry@kernelgen.org"
 
 ARG LLVM_VERSION=20
-
-ARG INCLUDE_ATL=
-ARG INCLUDE_MFC=
-#ARG INCLUDE_ATL="--include-atl"
-#ARG INCLUDE_MFC="--include-mfc"
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV LC_ALL C.UTF-8
@@ -56,7 +19,7 @@ RUN set -eux; \
     echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" > /etc/apt/sources.list.d/llvm.list && \
     wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc && \
     apt update && \
-    apt install -y --no-install-recommends git cmake make ninja-build llvm-${LLVM_VERSION} clang-${LLVM_VERSION} clang-tools-${LLVM_VERSION} lld-${LLVM_VERSION} libomp-${LLVM_VERSION}-dev libz-dev vim fish tmux mc ssh gpg gpg-agent libgpgme11 && \
+    apt install -y --no-install-recommends git cmake make ninja-build llvm-${LLVM_VERSION} clang-${LLVM_VERSION} clang-tools-${LLVM_VERSION} libc++-${LLVM_VERSION}-dev libc++abi-${LLVM_VERSION}-dev lld-${LLVM_VERSION} libomp-${LLVM_VERSION}-dev libz-dev vim fish tmux mc ssh gpg gpg-agent libgpgme11 libpcre3 libsystemd0 && \
     ln -s clang-${LLVM_VERSION} /usr/bin/clang && ln -s clang /usr/bin/clang++ && ln -s lld-${LLVM_VERSION} /usr/bin/ld.lld && \
     ln -s clang-cl-${LLVM_VERSION} /usr/bin/clang-cl && ln -s llvm-ar-${LLVM_VERSION} /usr/bin/llvm-lib && ln -s lld-link-${LLVM_VERSION} /usr/bin/lld-link && \
     ln -s llvm-rc-${LLVM_VERSION} /usr/bin/llvm-rc && \
@@ -71,8 +34,64 @@ RUN set -eux; \
     update-alternatives --install /usr/bin/ld ld /usr/bin/ld.lld-${LLVM_VERSION} 100 && \
     update-alternatives --install /usr/bin/ar ar /usr/bin/llvm-ar-${LLVM_VERSION} 100
 
+
+FROM clang as pacman
+
+RUN set -eux; \
+    apt update && \
+    apt install -y --no-install-recommends git wget ca-certificates meson make ninja-build \
+        pkg-config libarchive-dev libssl-dev libcurl4-openssl-dev libgpgme-dev \
+        libpcre3-dev libsystemd-dev systemd
+
+# We use MSYS2, which is pacman-flavored Windows packages provider that makes libraries
+# dependencies installation as easy as in Linux.
+RUN set -eux; \
+    git clone https://github.com/msys2/msys2-pacman.git && \
+    cd msys2-pacman && \
+    meson setup builddir --buildtype=release --prefix=/opt/msys2/usr --sysconfdir=/opt/msys2/etc && \
+    meson compile -C builddir && \
+    meson install -C builddir
+
+# Also install the keyring required for packages verification
+RUN set -eux; \
+    git clone https://github.com/msys2/MSYS2-keyring.git && \
+    cd MSYS2-keyring && \
+    sed -i "s|/usr/local|/usr|" Makefile && \
+    make DESTDIR=/opt/msys2
+
+# Also include pkgfile to inspect the package contents without installing them
+RUN set -eux; \
+    git clone https://github.com/falconindy/pkgfile.git && \
+    cd pkgfile && \
+    sed -i "s|/etc/pacman.conf|/opt/msys2/etc/pacman.conf|g" meson.build && \
+    CXXFLAGS="-stdlib=libc++" meson setup builddir --buildtype=release --prefix=/opt/msys2/usr && \
+    meson compile -C builddir && \
+    meson install -C builddir
+
+WORKDIR /opt/msys2/etc
+
+RUN rm -rf pacman.conf && \
+    wget https://raw.githubusercontent.com/msys2/MSYS2-packages/refs/heads/master/pacman/pacman.conf && \
+    sed -i "s|/etc/pacman.d|/opt/msys2/etc/pacman.d|g" pacman.conf && \
+    sed -i "s|CheckSpace|#CheckSpace|g" pacman.conf
+
+WORKDIR /opt/msys2/etc/pacman.d
+
+RUN wget https://raw.githubusercontent.com/msys2/MSYS2-packages/refs/heads/master/pacman-mirrors/mirrorlist.msys && \
+    wget https://raw.githubusercontent.com/msys2/MSYS2-packages/refs/heads/master/pacman-mirrors/mirrorlist.mingw
+
+FROM clang
+
+LABEL maintainer="dmitry@kernelgen.org"
+
+ARG INCLUDE_ATL=
+ARG INCLUDE_MFC=
+#ARG INCLUDE_ATL="--include-atl"
+#ARG INCLUDE_MFC="--include-mfc"
+
 # Build & install Dropbear SSH server with our mods
-RUN git clone https://github.com/dmikushin/dropbear.git && \
+RUN set -eux; \
+    git clone https://github.com/dmikushin/dropbear.git && \
     cd dropbear && \
     mkdir build && \
     cd build && \
@@ -146,6 +165,7 @@ ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/msys2/usr/lib64
 RUN pacman-key --init && \
     pacman-key --populate msys2 && \
     mkdir -p /var/lib/pacman && \
+    mkdir -p /var/cache/pkgfile && \
     pacman -Syu --noconfirm && \
     pacman -Sy --noconfirm msys2-keyring
 
