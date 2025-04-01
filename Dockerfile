@@ -19,7 +19,7 @@ RUN set -eux; \
     echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" > /etc/apt/sources.list.d/llvm.list && \
     wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc && \
     apt update && \
-    apt install -y --no-install-recommends git cmake make ninja-build llvm-${LLVM_VERSION} clang-${LLVM_VERSION} clang-tools-${LLVM_VERSION} libc++-${LLVM_VERSION}-dev libc++abi-${LLVM_VERSION}-dev lld-${LLVM_VERSION} libomp-${LLVM_VERSION}-dev libz-dev vim fish tmux mc ssh gpg gpg-agent libgpgme11 libpcre3 libsystemd0 patch libarchive-tools file strace && \
+    apt install -y --no-install-recommends git cmake make ninja-build meson llvm-${LLVM_VERSION} clang-${LLVM_VERSION} clang-tools-${LLVM_VERSION} libc++-${LLVM_VERSION}-dev libc++abi-${LLVM_VERSION}-dev lld-${LLVM_VERSION} libomp-${LLVM_VERSION}-dev libz-dev vim fish tmux mc ssh gpg gpg-agent libgpgme11 libpcre3 libsystemd0 patch libarchive-tools file strace&& \
     ln -s clang-${LLVM_VERSION} /usr/bin/clang && ln -s clang /usr/bin/clang++ && ln -s lld-${LLVM_VERSION} /usr/bin/ld.lld && \
     ln -s clang-cl-${LLVM_VERSION} /usr/bin/clang-cl && ln -s llvm-ar-${LLVM_VERSION} /usr/bin/llvm-lib && ln -s lld-link-${LLVM_VERSION} /usr/bin/lld-link && \
     ln -s llvm-rc-${LLVM_VERSION} /usr/bin/llvm-rc && \
@@ -39,7 +39,7 @@ FROM clang as pacman
 
 RUN set -eux; \
     apt update && \
-    apt install -y --no-install-recommends git wget ca-certificates meson make ninja-build \
+    apt install -y --no-install-recommends \
         pkg-config libarchive-dev libssl-dev libcurl4-openssl-dev libgpgme-dev \
         libpcre3-dev libsystemd-dev systemd
 
@@ -174,6 +174,16 @@ RUN pacman-key --init && \
     mkdir -p /var/cache/pkgfile && \
     pacman -Syu --noconfirm && \
     pacman -Sy --noconfirm msys2-keyring
+
+# Put symlinks to native CMake/Make/Ninja/Meson for clang64 platform
+# TODO: After moving the container from Ubuntu to CachyOS, we should
+# use overlay to put all native executables and libraries on top of
+# the /opt/xwin target
+RUN mkdir -p /clang64/bin && \
+    ln -s /opt/clang-win/bin/cmake /clang64/bin/cmake && \
+    ln -s /opt/clang-win/bin/make /clang64/bin/make && \
+    ln -s /opt/clang-win/bin/ninja /clang64/bin/ninja && \
+    ln -s /opt/clang-win/bin/meson /clang64/bin/meson
 
 # Run Dropbear SSH server without authentication ('-0' option mod)
 ENTRYPOINT [ "dropbear", "-0", "-F", "-s", "-e", "-E", "-p", "22221" ]
