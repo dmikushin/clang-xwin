@@ -68,12 +68,17 @@ RUN set -eux; \
     meson compile -C builddir && \
     meson install -C builddir
 
+WORKDIR /opt/msys2/bin
+
+RUN wget https://raw.githubusercontent.com/msys2/MSYS2-packages/refs/heads/master/pacman/makepkg-mingw
+
 WORKDIR /opt/msys2/etc
 
 RUN rm -rf pacman.conf && \
     wget https://raw.githubusercontent.com/msys2/MSYS2-packages/refs/heads/master/pacman/pacman.conf && \
     sed -i "s|/etc/pacman.d|/opt/msys2/etc/pacman.d|g" pacman.conf && \
-    sed -i "s|CheckSpace|#CheckSpace|g" pacman.conf
+    sed -i "s|CheckSpace|#CheckSpace|g" pacman.conf && \
+    wget https://raw.githubusercontent.com/msys2/MSYS2-packages/refs/heads/master/pacman/makepkg_mingw.conf
 
 WORKDIR /opt/msys2/etc/pacman.d
 
@@ -162,6 +167,7 @@ COPY --from=pacman /opt/msys2 /opt/msys2
 ENV PATH=$PATH:/opt/msys2/usr/bin
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/msys2/usr/lib64
 
+# Initialize pacman
 RUN pacman-key --init && \
     pacman-key --populate msys2 && \
     mkdir -p /var/lib/pacman && \
