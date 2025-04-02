@@ -19,7 +19,7 @@ ENV LC_ALL C.UTF-8
 # Install LLVM toolchain
 RUN pacman -Sy --noconfirm git curl wget ca-certificates \
     llvm clang lld compiler-rt libc++ libc++abi \
-    cmake make ninja meson fish tmux mc openssh gnupg gpgme pcre systemd \
+    make ninja meson fish tmux mc openssh gnupg gpgme pcre systemd \
     patch libarchive file strace vim && \
     ln -sf /usr/bin/clang /usr/bin/cc && \
     ln -sf /usr/bin/clang++ /usr/bin/c++ && \ 
@@ -31,6 +31,20 @@ RUN pacman -Sy --noconfirm git curl wget ca-certificates \
     ar --version && \
     rm -rf /var/lib/pacman/sync/* && \
     find /var/cache/pacman/ -type f -delete
+
+COPY 0001-According-to-CMAKE_-LANG-_FLAGS-design-it-should-pro.patch .
+
+# Build CMake 3.31 from source
+RUN set -eux; \
+    curl -L https://github.com/Kitware/CMake/releases/download/v3.31.0/cmake-3.31.0.tar.gz | tar -xz && \
+    cd cmake-3.31.0 && \
+    patch -p1 < ../0001-According-to-CMAKE_-LANG-_FLAGS-design-it-should-pro.patch && \
+    ./bootstrap --prefix=/usr --parallel=$(nproc) && \
+    make -j$(nproc) && \
+    make install && \
+    cd .. && \
+    rm -rf cmake-3.31.0 && \
+    rm -rf 0001-According-to-CMAKE_-LANG-_FLAGS-design-it-should-pro.patch
 
 FROM clang as pacman
 
