@@ -173,12 +173,16 @@ RUN mkdir -p /clang64/bin && \
 # required (e.g. for package testing)
 RUN pacman -Sy --noconfirm wine && \
     rm -rf /var/lib/pacman/sync/* && \
-    find /var/cache/pacman/ -type f -delete
+    find /var/cache/pacman/ -type f -delete && \
+    wineboot
 
 # Defining these env variables to make sure wine does not pollute the
 # expected app output with its own logs
 ENV XDG_RUNTIME_DIR=/run/user/0
 ENV WINEDEBUG=-all
+
+# Disable mouse visual in vim
+RUN echo 'source $VIMRUNTIME/defaults.vim\nset mouse-=a' > /root/.vimrc
 
 # Run Dropbear SSH server without authentication ('-0' option mod)
 ENTRYPOINT [ "dropbear", "-0", "-F", "-s", "-e", "-E", "-p", "22221" ]
