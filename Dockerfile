@@ -32,19 +32,16 @@ RUN pacman -Sy --noconfirm git curl wget ca-certificates \
     rm -rf /var/lib/pacman/sync/* && \
     find /var/cache/pacman/ -type f -delete
 
-COPY 0001-According-to-CMAKE_-LANG-_FLAGS-design-it-should-pro.patch .
 
 # Build CMake 3.31 from source
 RUN set -eux; \
     curl -L https://github.com/Kitware/CMake/releases/download/v3.31.0/cmake-3.31.0.tar.gz | tar -xz && \
     cd cmake-3.31.0 && \
-    patch -p1 < ../0001-According-to-CMAKE_-LANG-_FLAGS-design-it-should-pro.patch && \
     ./bootstrap --prefix=/usr --parallel=$(nproc) && \
     make -j$(nproc) && \
     make install && \
     cd .. && \
-    rm -rf cmake-3.31.0 && \
-    rm -rf 0001-According-to-CMAKE_-LANG-_FLAGS-design-it-should-pro.patch
+    rm -rf cmake-3.31.0
 
 FROM clang AS pacman
 

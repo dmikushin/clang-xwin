@@ -4,6 +4,7 @@ if [ "$MSYSTEM" = "XWIN" ]; then
     if [ "${1#--build}" = "$1" ] && [ "${1#-E}" = "$1" ]; then
         # Prepend -D commands if not starting with --build
         LD_PRELOAD=/opt/xwin/lib/libinsensitive.so /usr/bin/cmake.orig \
+            -DCMAKE_POLICY_DEFAULT_CMP0091=NEW \
             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded \
             -DCMAKE_SYSTEM_NAME=Windows \
