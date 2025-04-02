@@ -1,4 +1,4 @@
-FROM cachyos/cachyos:latest as rootfs
+FROM cachyos/cachyos:latest AS rootfs
 
 # Copy the v3 optimized pacman configuration
 COPY pacman-v3.conf /etc/pacman.conf
@@ -46,7 +46,7 @@ RUN set -eux; \
     rm -rf cmake-3.31.0 && \
     rm -rf 0001-According-to-CMAKE_-LANG-_FLAGS-design-it-should-pro.patch
 
-FROM clang as pacman
+FROM clang AS pacman
 
 # Install build dependencies for pacman
 RUN pacman -Sy --noconfirm pkgconf openssl && \
@@ -168,6 +168,17 @@ RUN mkdir -p /clang64/bin && \
     ln -s /opt/clang-win/bin/make /clang64/bin/make && \
     ln -s /opt/clang-win/bin/ninja /clang64/bin/ninja && \
     ln -s /usr/bin/meson /clang64/bin/meson
+
+# Finally, install Wine to run 64-bit Windows binaries, whenever it is
+# required (e.g. for package testing)
+RUN pacman -Sy --noconfirm wine && \
+    rm -rf /var/lib/pacman/sync/* && \
+    find /var/cache/pacman/ -type f -delete
+
+# Defining these env variables to make sure wine does not pollute the
+# expected app output with its own logs
+ENV XDG_RUNTIME_DIR=/run/user/0
+ENV WINEDEBUG=-all
 
 # Run Dropbear SSH server without authentication ('-0' option mod)
 ENTRYPOINT [ "dropbear", "-0", "-F", "-s", "-e", "-E", "-p", "22221" ]
