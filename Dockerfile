@@ -179,7 +179,16 @@ ENV XDG_RUNTIME_DIR=/run/user/0
 ENV WINEDEBUG=-all
 
 # Disable mouse visual in vim
-RUN echo 'source $VIMRUNTIME/defaults.vim\nset mouse-=a' > /root/.vimrc
+RUN echo 'source $VIMRUNTIME/defaults.vim' > /root/.vimrc && \
+    echo 'set mouse-=a' >> /root/.vimrc
+
+# Install fake packages representing various build tools for XWin.
+COPY quasipkg /usr/bin/quasipkg
+RUN chmod +x /usr/bin/quasipkg && \
+    quasipkg --name xwin-cc --version 1.0 --description "Fake cc package" --provides xwin-cc --install && \
+    quasipkg --name xwin-cmake --version 1.0 --description "Fake cmake package" --provides xwin-cmake --install && \
+    quasipkg --name xwin-make --version 1.0 --description "Fake make package" --provides xwin-make --install && \
+    quasipkg --name xwin-ninja --version 1.0 --description "Fake ninja package" --provides xwin-ninja --install
 
 # Run Dropbear SSH server without authentication ('-0' option mod)
 ENTRYPOINT [ "dropbear", "-0", "-F", "-s", "-e", "-E", "-p", "22221" ]
