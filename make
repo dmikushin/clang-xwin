@@ -1,2 +1,6 @@
 #!/bin/bash
-LD_PRELOAD=/opt/clang-win/bin/libinsensitive.so /usr/bin/make $@
+if [ "$MSYSTEM" = "XWIN" ]; then
+    LD_PRELOAD=/opt/xwin/lib/libinsensitive.so /usr/bin/make.orig $@
+else
+    /usr/bin/make.orig $@
+fi

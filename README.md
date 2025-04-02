@@ -1,12 +1,12 @@
 # Build Windows apps in a Linux container
 
-Build Windows apps in a Linux container using Clang and [XWin](https://github.com/Jake-Shadle/xwin).
+Build MSVC-compatible Windows apps in a Linux container using Clang and [XWin](https://github.com/Jake-Shadle/xwin).
 
 Yes, it works very well, moreover ATL and MFC are supported!
 
 We use a preloaded library that emulates basic case-insensitive behavior in Linux, which is essential in Windows build environment.
 
-We integrate MSYS2 to install Windows dependencies with pacman.
+We integrate [portions of MSYS2](https://github.com/dmikushin/xwin-packages) to install Windows dependencies with pacman.
 
 
 ## Building
